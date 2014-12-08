@@ -1,0 +1,5 @@
+3 dup + dup
+:derp { 3 dup  }
+if derp else 3 then 5
+0
+if 9 4 3 else rot then swap
