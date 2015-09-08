@@ -80,13 +80,14 @@ GREATER0:
 	sw $t3, 4($t1)
 	jr $ra	
 IF:
-    #add $t3, $t1, 4
-    #lw $t2, ($t3)
-    #li $a0, @
-    #li $a1, @
-    #add $t1,$t1,4
-    #subi $t2,$t2,1
-    #bltzal $t2, ELSE
+    #jal IF
+    add $t3, $t1, 4
+    lw $t2, ($t3)
+    li $a0, @
+    li $a1, @
+    add $t1,$t1,4
+    subi $t2,$t2,1
+    bltzal $t2, ELSE
 ELSE:
     #jal THEN
     add $a2, $a0, 0
