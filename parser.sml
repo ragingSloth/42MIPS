@@ -148,7 +148,7 @@ structure Parser =  struct
    *
    *   sentence ::= T_IF sentence T_THEN sentence
    *                T_IF sentence T_ELSE sentence T_THEN sentence
-   *                T_WHILE sentence T_REPEAT sentence
+   *                T_WHILE sentence T_REPEAT sentence (not implemented)
    *                word sentence
    *                word
    *                <empty>
@@ -195,7 +195,14 @@ structure Parser =  struct
 
   fun expect_RBRACE (T_RBRACE::ts) = SOME ts
     | expect_RBRACE _ = NONE
-
+    
+    (*
+    * The parser propper
+    * different expressions are matched against token combinations
+    * includes parsing of assembly library 
+    *)
+   
+  (* parse arbitrary assembly into single type *)
   and parseASM ts =
       (case expect_WORD ts
       of NONE => 
@@ -209,7 +216,7 @@ structure Parser =  struct
            (case parseASM ts'
            of NONE => SOME ([word],ts')
             | SOME (words,ts'') => SOME(word::words,ts'')))
-
+(* parse name of assembly primative from library *)
   and parseFunDec ts = 
       (case expect_COLON ts
       of NONE => NONE
@@ -218,6 +225,7 @@ structure Parser =  struct
            of NONE => NONE
             | SOME (name, ts) => SOME ([name],ts)))
 
+  (* parse assembly implementation of language primitive from library *)
   and parseFunDef ts = 
       (case expect_LBRACK ts
       of NONE => NONE
@@ -231,6 +239,8 @@ structure Parser =  struct
                      (case parseFunDef ts
                      of NONE => SOME ([asm], ts)
                       | SOME (ops, tss) => SOME (asm::ops,tss)))))
+		
+  (* parse assembly library as whole *)
   and parseLib ts =
       (case parseFunDec ts
       of NONE => NONE
@@ -243,7 +253,7 @@ structure Parser =  struct
                  | SOME (primitive,ts) => SOME((name::funk)::primitive,ts))))
   
 
-
+  (* match internal representation to associated library implementation *)
   and lookup primitive lib =
   let
     fun matchPrim prim [] = unknownPrim prim 
@@ -266,6 +276,7 @@ structure Parser =  struct
       matchPrim primitive lib 
   end
 
+  (* parse if then else statement into IR *)
   and parseIf ts lib=
   (case expect_IF ts
   of NONE => NONE
@@ -341,6 +352,7 @@ structure Parser =  struct
                            end
                             ))))))
 
+  (* assemble processed library into format of internal environment *)
   and buildDecl funkRaw lib=
     let
         val functionsPrim = map (fn x => List.nth (x,1)) funkRaw 
@@ -352,14 +364,16 @@ structure Parser =  struct
     in
       functionsLib
     end
-
+  (* wraps lookup *)
   and build (prim::prims) lib =
     (lookup prim lib)::(build prims lib)
     | build [] lib = []
-
+    
+  (* list manip helper *)
   and combine x y 0 = []
     | combine x y n = [(List.nth (x,(n-1)))::List.nth (y,(n-1))]@(combine x y (n-1))
 
+  (* parse function definition in forth *)
   and parseDecl ts =
   (case expect_COLON ts 
   of NONE => NONE
@@ -376,7 +390,7 @@ structure Parser =  struct
                    (case expect_RBRACE ts
                    of NONE => NONE
                     | SOME ts => SOME ([[upper w],funk],ts))))))
-    
+  (* parse out numbers and words into IR *)
   and parse2Sym ts =
   (case expect_INT ts
   of SOME (i,ts) =>
@@ -390,7 +404,7 @@ structure Parser =  struct
          of NONE => SOME ([upper w],ts)
           | SOME (syms, ts) => SOME ((upper w)::syms,ts))
         | NONE => NONE))
-
+  (* parse a program *)
   and parse [] program functions jmpArgs lib= (program, functions, jmpArgs)
     | parse ts program functions jmpArgs lib=
     (case parse2Sym ts 
