@@ -1,10 +1,7 @@
 structure Compiler = struct
   structure P = Parser
 
-  (*fun compile fName = 
-  let 
-  val forth = readf fName
-  *)
+  (* string manip, replaces placeholders *)
   fun replaceArgs []  _ result = List.rev result
     | replaceArgs (opc::asm) (arg::args) result = 
     (case opc
@@ -12,6 +9,7 @@ structure Compiler = struct
      | _ => replaceArgs asm (arg::args) (opc::result))
     | replaceArgs (opc::asm) [] results = replaceArgs asm [] (opc::results)
 
+  (* file IO *)
   fun readf fName = 
       let 
         val f = TextIO.openIn(fName)
@@ -20,14 +18,14 @@ structure Compiler = struct
         TextIO.closeIn(f);
         content
       end
-
+  (* lex plaintext for use in parser *)
   fun lexLib fName =
         let 
           val f = readf fName
         in
           P.lexString f
         end
-
+  (* build IR using parser *)
   fun file2Sym fName lib =
         let 
           val f = readf fName
@@ -36,11 +34,12 @@ structure Compiler = struct
         in
           internalSyntax
         end
-        
+  (* convert IR to assembly *)      
   fun build (prim::prims) lib =
     (P.lookup prim lib)::(build prims lib)
     | build [] lib = []
 
+  (* compile the program as a whole *)
   fun write target fIn libASM =
     let 
         fun concatOp opc= (foldr (fn (x, y) => x^" "^y) "" opc);
@@ -56,6 +55,7 @@ structure Compiler = struct
            of (program, functions, ifArgs) => {prog=program, funk=functions,
            ifArgs=ifArgs})
         val file = map Parser.convert (#prog fileRaw)
+        (* this is the meat of it, intermediate forms are succesively built into valid assembly *)
         val functionsLib = Parser.buildDecl (#funk fileRaw) lib
         val assemblyBlocks = foldr (op @) [] (build file (functionsLib@lib))
         val assemblyNoArgs = foldr (op @) [] (map (fn x => x@["\n"]) assemblyBlocks)
