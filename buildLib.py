@@ -1,4 +1,7 @@
 import re
+
+#identify the lanugage primitives provided as well as the syntax for invoking them
+#once identified assemble the syntax into a library file for use by the compiler
 def getFunctions(fName):
     index = 0
     matches = []
